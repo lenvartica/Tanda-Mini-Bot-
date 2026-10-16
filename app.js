@@ -1,7 +1,4 @@
-const API_BASE = "https://tanda-mini-bot.onrender.com";
-const STATUS_ENDPOINTS = ["/health", "/api/health", "/status"];
-const PAIR_ENDPOINTS = ["/pair", "/api/pair", "/pairing"];
-
+const API_BASE = "";
 const statusText = document.getElementById("statusText");
 const statusDetail = document.getElementById("statusDetail");
 const refreshStatusButton = document.getElementById("refreshStatus");
@@ -29,7 +26,7 @@ function setServiceState(state, message) {
   if (state.toLowerCase().includes("online")) {
     dot.style.background = "#50f2a0";
     dot.style.color = "#50f2a0";
-  } else if (state.toLowerCase().includes("offline")) {
+  } else if (state.toLowerCase().includes("offline") || state.toLowerCase().includes("unavailable")) {
     dot.style.background = "#ff7777";
     dot.style.color = "#ff7777";
   } else {
@@ -38,7 +35,7 @@ function setServiceState(state, message) {
   }
 }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -48,18 +45,27 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 9000) {
   }
 }
 
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) return response.json();
+  const text = await response.text();
+  return { message: text };
+}
+
 async function refreshStatus() {
   refreshStatusButton.disabled = true;
-  setServiceState("Checking service", "Checking the Render service…");
+  setServiceState("Checking service", "Checking the Render backend through the Vercel API proxy…");
   try {
-    const response = await fetchWithTimeout(API_BASE, { method: "GET", mode: "cors" }, 10000);
-    if (response.ok) {
-      setServiceState("Service online", "Render is responding. Bot connection status may require a dedicated status endpoint.");
-    } else {
-      setServiceState("Service online", `Render responded with HTTP ${response.status}.`);
+    const response = await fetchWithTimeout(`${API_BASE}/api/health`, { method: "GET" }, 12000);
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+      throw new Error(data.error || data.message || `HTTP ${response.status}`);
     }
+    const active = Number.isFinite(data.activeSessions) ? ` Active sessions: ${data.activeSessions}.` : "";
+    const uptime = Number.isFinite(data.uptime) ? ` Uptime: ${Math.floor(data.uptime)} seconds.` : "";
+    setServiceState("Service online", `${data.name || "Tanda Mini Bot"} is responding.${active}${uptime}`);
   } catch (error) {
-    setServiceState("Status unavailable", "The service may be waking up, or its response may not allow browser requests. Try again shortly.");
+    setServiceState("Status unavailable", error.message || "Unable to reach the backend. Check the Vercel deployment logs.");
   } finally {
     refreshStatusButton.disabled = false;
   }
@@ -97,43 +103,10 @@ function showPairResult(title, message, code = "") {
   pairResult.appendChild(paragraph);
 }
 
-function extractPairingCode(data) {
-  if (!data || typeof data !== "object") return "";
-  const candidates = [
-    data.code,
-    data.pairingCode,
-    data.pairing_code,
-    data.pairCode,
-    data.pair_code,
-    data.result && data.result.code,
-    data.data && data.data.code
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
-  }
-  return "";
-}
-
-async function tryPairEndpoint(path, phone) {
-  const response = await fetchWithTimeout(`${API_BASE}${path}`, {
-    method: "POST",
-    mode: "cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, number: phone, phoneNumber: phone })
-  }, 20000);
-  const contentType = response.headers.get("content-type") || "";
-  let data;
-  if (contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    data = { message: await response.text() };
-  }
-  return { response, data };
-}
-
 pairForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const phone = normalizePhone(phoneInput.value);
+
   if (!/^254\d{9}$/.test(phone)) {
     showPairResult("Check your number", "Enter a Kenyan WhatsApp number in international format, for example 2547XXXXXXXX. Do not include the leading zero or + sign.");
     return;
@@ -143,38 +116,30 @@ pairForm.addEventListener("submit", async (event) => {
   pairButton.querySelector("span").textContent = "Requesting pairing code…";
   pairResult.hidden = true;
 
-  let lastError = "";
   try {
-    for (const endpoint of PAIR_ENDPOINTS) {
-      try {
-        const { response, data } = await tryPairEndpoint(endpoint, phone);
-        if (response.status === 404 || response.status === 405) {
-          lastError = `Endpoint ${endpoint} is not available`;
-          continue;
-        }
-        if (!response.ok) {
-          lastError = data && (data.error || data.message) ? String(data.error || data.message) : `Request failed with HTTP ${response.status}`;
-          if (response.status >= 500) break;
-          continue;
-        }
-        const code = extractPairingCode(data);
-        if (code) {
-          showPairResult("Your pairing code", "Open WhatsApp → Settings → Linked devices → Link a device → Link with phone number instead. Keep this code private.", code);
-          return;
-        }
-        const message = data && (data.message || data.error || data.status)
-          ? String(data.message || data.error || data.status)
-          : "The endpoint responded, but no pairing code field was found in its response.";
-        showPairResult("Pairing request received", message);
-        return;
-      } catch (error) {
-        lastError = error.name === "AbortError" ? "The pairing request timed out." : error.message;
-        if (error instanceof TypeError) {
-          lastError = "The browser could not reach this API endpoint. Check the endpoint path and CORS settings on Render.";
-        }
-      }
+    const response = await fetchWithTimeout("/api/pair", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone })
+    }, 30000);
+
+    const data = await readJsonResponse(response);
+    if (!response.ok || data.success === false) {
+      throw new Error(data.error || data.message || `Pairing failed with HTTP ${response.status}`);
     }
-    showPairResult("Could not generate a code", `${lastError || "No supported pairing endpoint was found."} The website needs to use the exact pairing endpoint implemented by your Render server.`);
+
+    const code = typeof data.code === "string" ? data.code.trim() : "";
+    if (!code) {
+      showPairResult("Pairing response received", data.message || "The backend responded but did not include a pairing code. Check the Render logs for the pairing request.");
+      return;
+    }
+
+    showPairResult("Your pairing code", data.message || "Open WhatsApp → Settings → Linked devices → Link a device → Link with phone number instead. Keep this code private.", code);
+  } catch (error) {
+    const message = error.name === "AbortError"
+      ? "The pairing request timed out. Check whether the Render service is awake and inspect its logs."
+      : error.message || "Could not contact the pairing service.";
+    showPairResult("Could not generate a code", message);
   } finally {
     pairButton.disabled = false;
     pairButton.querySelector("span").textContent = "Generate pairing code";
@@ -205,5 +170,4 @@ document.querySelectorAll("[data-command]").forEach((button) => {
 });
 
 refreshStatusButton.addEventListener("click", refreshStatus);
-
 refreshStatus();

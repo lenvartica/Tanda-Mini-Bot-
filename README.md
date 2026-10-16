@@ -1,34 +1,36 @@
-# Tanda Mini Bot — Vercel frontend
+# Tanda Mini Bot Vercel frontend
 
-A static HTML/CSS/JavaScript frontend designed to use the existing Render service at `https://tanda-mini-bot.onrender.com`.
+This project uses Vercel for the static website and serverless API proxy, and your existing Render deployment for WhatsApp pairing.
 
 ## Files
 
-- `index.html` — page structure
-- `styles.css` — responsive glass UI and Jin-Woo background styling
-- `app.js` — status check, command copy buttons, and pairing API integration
-- `vercel.json` — static deployment configuration
-- `jinwoo.png` — add your own background image using this exact filename
+- `index.html` — user interface
+- `styles.css` — responsive glassmorphism styling and background image reference
+- `app.js` — pairing form, status display, command-copy buttons
+- `api/pair.js` — securely proxies pairing requests to Render `/api/pair`
+- `api/health.js` — proxies status checks to Render `/api/health`
+- `vercel.json` — security headers and static site configuration
 
-## Add the Jin-Woo background
+## Jin-Woo background
 
-Place your Sung Jin-Woo image in this project folder and name it `jinwoo.png`. The CSS already references `./jinwoo.png`. Use an image you have permission to use.
+Put your image in the project root and name it exactly `jinwoo.png`. The CSS already uses `./jinwoo.png`. Use an image you have permission to use.
 
-## Deploy to Vercel
+## Deploy
 
-1. Extract the ZIP.
-2. Add `jinwoo.png` to the project folder.
-3. Upload the folder to a GitHub repository, or import the repository in Vercel.
-4. Choose the project root as the Root Directory.
-5. Framework Preset: Other.
-6. Build Command: leave empty.
-7. Output Directory: `.`.
-8. Deploy.
+1. Extract this ZIP.
+2. Add `jinwoo.png` to the project root.
+3. Push the contents to your GitHub repository.
+4. Import the repository into Vercel.
+5. Select Framework Preset `Other`.
+6. Leave Build Command empty and set Output Directory to `.`.
+7. Deploy.
 
-## Important API integration note
+## Existing Render API contract
 
-The public page is reachable, but this frontend cannot safely assume the actual pairing route or response format. `app.js` currently tries `/pair`, `/api/pair`, and `/pairing` with a POST body containing `phone`, `number`, and `phoneNumber`. Replace `PAIR_ENDPOINTS` and the request body with the exact route and schema implemented in your Render `server.js`.
+This frontend is wired to the API contract from your existing Tanda Mini Bot:
+- `POST https://tanda-mini-bot.onrender.com/api/pair` with JSON `{ "phone": "2547XXXXXXXXX" }`
+- `GET https://tanda-mini-bot.onrender.com/api/health`
 
-For browser-side calls, the Render API must allow the deployed Vercel origin through CORS. If you do not want to expose a pairing endpoint directly to browsers, add a server-side proxy and protect sensitive actions with rate limits and authorization.
+The Vercel proxy avoids browser-to-Render CORS restrictions. It does not make the pairing service publicly available without limits; consider adding rate limiting or authorization to the Render pairing endpoint to prevent abuse.
 
-Do not expose WhatsApp session credentials, Supabase service-role keys, or private API tokens in frontend files.
+Do not place Supabase service-role keys or WhatsApp session credentials in frontend code.
