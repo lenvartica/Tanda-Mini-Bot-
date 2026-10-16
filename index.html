@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07150f">
+  <meta name="description" content="Tanda Mini Bot — WhatsApp automation, simplified. Pair your phone and explore bot commands.">
+  <title>Tanda Mini Bot — WhatsApp Pairing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="background-art" aria-hidden="true"></div>
+  <div class="background-shade" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="Tanda Mini Bot home">
+      <span class="brand-mark">T</span>
+      <span class="brand-copy"><strong>TANDA</strong><small>MINI BOT</small></span>
+    </a>
+    <div class="top-actions">
+      <span class="service-pill"><span class="status-dot"></span><span id="statusText">Checking service</span></span>
+      <a class="github-link" href="https://tanda-mini-bot.onrender.com" target="_blank" rel="noreferrer">Render backend <span>↗</span></a>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="eyebrow-line"></span> WHATSAPP AUTOMATION, SIMPLIFIED</div>
+        <h1>Your WhatsApp.<br><span>Connected.</span></h1>
+        <p>Pair your phone with Tanda Mini Bot and try the available commands directly in WhatsApp. No website account required.</p>
+        <div class="feature-row">
+          <div class="feature"><span class="feature-icon">⌁</span><span><strong>Quick pairing</strong><small>Link with a code</small></span></div>
+          <div class="feature"><span class="feature-icon">◇</span><span><strong>Session storage</strong><small>Supabase-backed</small></span></div>
+        </div>
+      </div>
+      <div class="hero-art-label"><span class="pulse"></span> TANDA // ONLINE <span class="label-divider"></span> MADE IN KENYA ✦</div>
+    </section>
+
+    <section class="workflow-grid">
+      <article class="glass-card pairing-card">
+        <div class="card-heading">
+          <div><span class="step-label">STEP 01</span><h2>Pair your phone</h2></div>
+          <span class="card-symbol">⌁</span>
+        </div>
+        <p class="card-description">Use your WhatsApp number with the country code. For Kenya, start with <strong>254</strong> and omit the leading zero.</p>
+        <form id="pairForm">
+          <label for="phoneNumber">WhatsApp phone number</label>
+          <div class="phone-field"><span>＋</span><input id="phoneNumber" name="phoneNumber" type="tel" inputmode="numeric" autocomplete="tel" placeholder="2547XXXXXXXX" maxlength="15" required></div>
+          <button class="primary-button" id="pairButton" type="submit"><span>Generate pairing code</span><span class="button-arrow">↗</span></button>
+        </form>
+        <div id="pairResult" class="pair-result" hidden aria-live="polite"></div>
+        <ol class="steps-list">
+          <li><span>1</span><p>Open WhatsApp on your phone.</p></li>
+          <li><span>2</span><p>Go to <strong>Settings → Linked devices.</strong></p></li>
+          <li><span>3</span><p>Tap <strong>Link a device</strong>, then choose <strong>Link with phone number instead.</strong></p></li>
+          <li><span>4</span><p>Enter the pairing code shown above.</p></li>
+        </ol>
+      </article>
+
+      <article class="glass-card commands-card">
+        <div class="card-heading">
+          <div><span class="step-label">STEP 02</span><h2>Try a command</h2></div>
+          <span class="card-symbol">⌘</span>
+        </div>
+        <p class="card-description">Once connected, message your own WhatsApp chat or another chat with one of these commands.</p>
+        <div class="command-list" id="commandList">
+          <div class="command-row"><code>.menu</code><span>Open the command menu</span><button type="button" class="copy-button" data-command=".menu" aria-label="Copy menu command">▢</button></div>
+          <div class="command-row"><code>.help</code><span>Get help</span><button type="button" class="copy-button" data-command=".help" aria-label="Copy help command">▢</button></div>
+          <div class="command-row"><code>.ping</code><span>Test bot response</span><button type="button" class="copy-button" data-command=".ping" aria-label="Copy ping command">▢</button></div>
+          <div class="command-row"><code>.info</code><span>Bot information</span><button type="button" class="copy-button" data-command=".info" aria-label="Copy info command">▢</button></div>
+          <div class="command-row"><code>.owner</code><span>Creator information</span><button type="button" class="copy-button" data-command=".owner" aria-label="Copy owner command">▢</button></div>
+          <div class="command-row"><code>.status</code><span>Connection status</span><button type="button" class="copy-button" data-command=".status" aria-label="Copy status command">▢</button></div>
+        </div>
+        <div class="notice"><span class="notice-icon">ⓘ</span><p><strong>Keep your pairing code private.</strong> Anyone who links your WhatsApp session may be able to act as your account.</p></div>
+      </article>
+    </section>
+
+    <section class="status-strip">
+      <div class="status-strip-icon">✦</div>
+      <div><strong>Service status</strong><p id="statusDetail">Checking the Render service…</p></div>
+      <button id="refreshStatus" type="button" class="secondary-button">Refresh status ↻</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Sessions stored by Supabase</span>
+    <span>© <span id="year"></span> Tanda Mini Bot</span>
+    <span>Built by <strong>Lenny Muriuki · Deçan Techs</strong></span>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
